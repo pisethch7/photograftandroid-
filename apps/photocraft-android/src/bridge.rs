@@ -16,6 +16,10 @@
 //! - `incoming/`: documents another app sent (View / Share intents), copied in by the Activity
 //!   and opened by the app.
 //! - `check-update`: look for a newer release now (Help › Check for Updates…; see `updates.rs`).
+//! - `ai-request.json` / `ai-answer.json`: Window › AI's model call. Rust writes the request (URL,
+//!   headers, body); the Activity runs it on a background thread with `HttpURLConnection` and
+//!   writes the status and body back. Android's own network stack does the TLS, and the key stays
+//!   in the app's private storage, never in a log (see `ai.rs`).
 //! - `keyboard-hidden`: left by the Activity when the on-screen keyboard is put away.
 //!
 //! Each side writes a file under a temporary name and renames it, so the other side never reads
@@ -54,6 +58,31 @@ pub struct Answer {
 /// with an error rather than exhausting memory).
 const MAX_INCOMING: u64 = 2 << 30;
 
+/// A model request on its way to the Activity (Window › AI; see `ai.rs`).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AiRequest {
+    pub id: u64,
+    pub url: String,
+    /// Header pairs. The API key travels here, inside the app's private storage; the Activity
+    /// never logs them.
+    pub headers: Vec<(String, String)>,
+    pub body: String,
+}
+
+/// The Activity's answer to [`AiRequest`]: the server's status and body, or why there is none.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AiAnswer {
+    pub id: u64,
+    /// The HTTP status; 0 when the request never got one.
+    #[serde(default)]
+    pub status: u16,
+    #[serde(default)]
+    pub body: String,
+    /// A connection failure, a timeout, an untrusted certificate: a sentence, never a key.
+    #[serde(default)]
+    pub error: Option<String>,
+}
+
 pub struct Bridge {
     root: PathBuf,
     next_id: AtomicU64,
@@ -67,7 +96,7 @@ impl Bridge {
         for dir in ["inbox", "out", "sync", "incoming"] {
             std::fs::create_dir_all(root.join(dir))?;
         }
-        for stale in ["request.json", "answer.json", "quit", "keyboard-hidden", "check-update"] {
+        for stale in ["request.json", "answer.json", "quit", "keyboard-hidden", "check-update", "ai-request.json", "ai-answer.json", "ai-answer.json.tmp"] {
             let _ = std::fs::remove_file(root.join(stale));
         }
         // Ids only need to be unique within a run; start from the clock so a late answer from
@@ -138,6 +167,22 @@ impl Bridge {
     /// Ask the Activity to look for an update now (Help › Check for Updates…).
     pub fn request_update_check(&self) -> Result<(), String> {
         write_then_rename(&self.root.join("check-update"), b"")
+    }
+
+    /// Ask the Activity to run a model request (Window › AI; see `ai.rs`).
+    pub fn ai_request(&self, request: &AiRequest) -> Result<(), String> {
+        let text = serde_json::to_vec(request).map_err(|e| e.to_string())?;
+        write_then_rename(&self.root.join("ai-request.json"), &text)
+    }
+
+    /// The answer to request `id`, once the Activity wrote it (consumed). Another request's answer
+    /// is stale and dropped, as an unreadable one is.
+    pub fn take_ai_answer(&self, id: u64) -> Option<AiAnswer> {
+        let path = self.root.join("ai-answer.json");
+        let text = std::fs::read(&path).ok()?;
+        let _ = std::fs::remove_file(&path);
+        let answer: AiAnswer = serde_json::from_slice(&text).map_err(|e| log::warn!("bridge: unreadable AI answer: {e}")).ok()?;
+        (answer.id == id).then_some(answer)
     }
 
     /// Ask the Activity to finish (see the module docs).
@@ -243,6 +288,40 @@ mod tests {
         assert_eq!(b.take_answer(id).and_then(|a| a.path), Some("/x/out/1/a.png".into()));
         answer("{not json");
         assert_eq!(b.take_answer(id), None, "garbage is no answer, never a panic");
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn an_ai_request_and_answer_round_trip_through_files() {
+        let dir = temp();
+        let b = Bridge::new(&dir).unwrap();
+        let id = b.next_id();
+        let request = AiRequest {
+            id,
+            url: "https://api.example.test/v1/chat/completions".into(),
+            headers: vec![("Content-Type".into(), "application/json".into()), ("Authorization".into(), "Bearer sk-test".into())],
+            body: r#"{"model":"m"}"#.into(),
+        };
+        b.ai_request(&request).unwrap();
+        let text = std::fs::read_to_string(b.root().join("ai-request.json")).unwrap();
+        let back: AiRequest = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, request, "the Activity reads exactly what the transport wrote");
+        assert!(!b.root().join("ai-request.tmp").exists(), "written under a temporary name, then renamed");
+
+        assert_eq!(b.take_ai_answer(id), None, "nothing yet");
+        let answer = |json: &str| std::fs::write(b.root().join("ai-answer.json"), json).unwrap();
+        answer(&format!(r#"{{"id": {}, "status": 200, "body": "hi"}}"#, id + 100));
+        assert_eq!(b.take_ai_answer(id), None, "another request's answer is stale");
+        assert!(!b.root().join("ai-answer.json").exists(), "and dropped");
+        answer(&format!(r#"{{"id": {id}, "status": 200, "body": "hi"}}"#));
+        let got = b.take_ai_answer(id).expect("an answer");
+        assert_eq!((got.status, got.body.as_str(), got.error), (200, "hi", None));
+        // A connection failure carries a sentence and no status.
+        answer(&format!(r#"{{"id": {id}, "error": "no route to host"}}"#));
+        let got = b.take_ai_answer(id).expect("a failure is still an answer");
+        assert_eq!((got.status, got.error.as_deref()), (0, Some("no route to host")));
+        answer("{not json");
+        assert_eq!(b.take_ai_answer(id), None, "garbage is no answer, never a panic");
         std::fs::remove_dir_all(dir).ok();
     }
 

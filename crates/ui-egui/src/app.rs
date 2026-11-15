@@ -1,12 +1,12 @@
 use super::services::{ExportSettings, FormatChoices, SAVE_OPTIONS_OPEN, SaveKind, Services, plain_raster, saved_revision_after_write};
 use super::{
-    ControlRequest, DocId, Document, HashMap, PhotocraftApp, Receiver, Session, SyntheticTarget, Tool, UiState, Value, actions, analysis_ui, brush_panel,
-    brush_picker, camera_raw_ui, canvas, dds_options_ui, delete_layer_prompt, dialogs, discard_ui, distort_ui, dock, field_wheel, file_open, gpu_canvas,
-    gpu_status, gradient_ui, histogram_panel, i18n, jobs_ui, jpeg_options_ui, json, kys_import, last_brush, layers_panel_ui, mask_thumbs_ui, mask_trash_prompt,
-    monitor_status, native_menu, notices, open_prompt, paint_mouse, palette, panel_docking, panels, prefs_ui, preset_files_ui, preset_panels, rasterize_prompt,
-    screen_picker, shape_stroke_ui, shortcuts, single_line_drag, smart_svg_ui, state, stroke_trace, stylus, targa_options_ui, text_field_menu, theme,
-    tiff_options_ui, timeline_ui, titlebar, tool_cursor, tool_memory, transform_tool, type_panels_ui, type_tool, type_transform, updates_ui, vector_ui,
-    view_cmds, wheel_nav, wide_angle_ui, widgets, work_area, workspace_ui,
+    ControlRequest, DocId, Document, HashMap, PhotocraftApp, Receiver, Session, SyntheticTarget, Tool, UiState, Value, actions, ai_ui, analysis_ui,
+    brush_panel, brush_picker, camera_raw_ui, canvas, dds_options_ui, delete_layer_prompt, dialogs, discard_ui, distort_ui, dock, field_wheel, file_open,
+    gpu_canvas, gpu_status, gradient_ui, histogram_panel, i18n, jobs_ui, jpeg_options_ui, json, kys_import, last_brush, layers_panel_ui, mask_thumbs_ui,
+    mask_trash_prompt, monitor_status, native_menu, notices, open_prompt, paint_mouse, palette, panel_docking, panels, prefs_ui, preset_files_ui,
+    preset_panels, rasterize_prompt, screen_picker, shape_stroke_ui, shortcuts, single_line_drag, smart_svg_ui, state, stroke_trace, stylus,
+    targa_options_ui, text_field_menu, theme, tiff_options_ui, timeline_ui, titlebar, tool_cursor, tool_memory, transform_tool, type_panels_ui, type_tool,
+    type_transform, updates_ui, vector_ui, view_cmds, wheel_nav, wide_angle_ui, widgets, work_area, workspace_ui,
 };
 
 mod clipboard;
@@ -35,6 +35,13 @@ pub use thumbs::surface_fingerprint;
 impl PhotocraftApp {
     pub fn new(mut session: Session, mut services: Services) -> Self {
         session.updates.check = services.check_updates.take();
+        // The model call needs a socket the engine does not have: install the app's planner on the
+        // session's background seam, so `ai.poster.create` returns at once and `ai.poster.status`
+        // reports the answer to the panel, the CLI and MCP alike.
+        if let Some(ai) = services.ai.as_ref() {
+            session.ai.plan = Some(crate::ai_ui::plan_fn(ai));
+        }
+        let ai_rt = services.ai.take().map(crate::ai_ui::Runtime::new).unwrap_or_default();
         let mut app = Self {
             session,
             ui: UiState::default(),
@@ -199,6 +206,7 @@ impl PhotocraftApp {
             slow_frames: Default::default(),
             prefs_rt: Default::default(),
             updates_rt: Default::default(),
+            ai_rt,
             discard: None,
             file_dialog: None,
             tiff_options: None,

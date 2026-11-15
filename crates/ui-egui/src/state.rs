@@ -593,6 +593,10 @@ pub struct UiState {
     /// Non-modal release-check window; readable and controllable through `ui.inspect`/`ui.set`.
     #[serde(default)]
     pub updates_open: bool,
+    /// Window › AI › Create Poster. The prompt and the answer live in `ai_rt`, never here: a prompt
+    /// is the person's words and must not be written to `ui.ron`.
+    #[serde(default)]
+    pub ai_open: bool,
     /// Pending GPU fallback warning, visible to automation.
     #[serde(default)]
     pub gpu_fallback_notice: Option<String>,
@@ -719,6 +723,7 @@ impl Default for UiState {
             status_error: false,
             notices: Vec::new(),
             updates_open: false,
+            ai_open: false,
             gpu_fallback_notice: None,
             kys_offer: None,
             slow_refresh_noticed: Vec::new(),

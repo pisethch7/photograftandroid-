@@ -24,6 +24,7 @@ macro_rules! tl {
         $crate::i18n::t($s)
     };
 }
+pub mod ai_ui;
 mod brush_mode_menu;
 pub mod canvas;
 pub mod control;
@@ -721,6 +722,8 @@ pub struct PhotocraftApp {
     /// Preferences, autosave and snapping runtime state (see `prefs_ui`, `snap_ui`).
     pub(crate) prefs_rt: prefs_ui::Runtime,
     pub(crate) updates_rt: updates_ui::Runtime,
+    /// The AI poster panel: prompt, provider settings and the last answer (see `ai_ui`).
+    pub(crate) ai_rt: ai_ui::Runtime,
     /// Close, Revert or Exit parked behind the unsaved-changes prompt (see `discard_ui`).
     pub(crate) discard: Option<discard_ui::Prompt>,
     /// The Open or Save dialog in progress, and the action waiting on it (see `file_dialog`).

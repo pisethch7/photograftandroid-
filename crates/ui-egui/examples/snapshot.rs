@@ -42,10 +42,13 @@ fn main() {
     let scale: f32 = arg(&args, "--scale").and_then(|s| s.parse().ok()).unwrap_or(2.0);
     let wayland_notice = args.iter().any(|a| a == "--wayland-notice");
     let update_notice = args.iter().any(|a| a == "--update-notice");
+    // `--scripted-ai`: Window › AI's planner answers with a fixed brief, so the panel can be
+    // captured without a key, a network or a model.
+    let scripted_ai = args.iter().any(|a| a == "--scripted-ai");
     let script: Vec<(String, Value)> =
         arg(&args, "--script").map(|s| serde_json::from_str::<Vec<(String, Value)>>(&s).expect("--script must be [[method, params], …]")).unwrap_or_default();
 
-    let services = Services {
+    let mut services = Services {
         import: Some(Box::new(|name: &str, bytes: &[u8], opts: &photocraft_io::ImportOptions| {
             photocraft_io::import_with_options(name, bytes, opts).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
         })),
@@ -66,6 +69,9 @@ fn main() {
         write: Some(Box::new(|path: &str, bytes: &[u8]| photocraft_format::atomic_write(std::path::Path::new(path), bytes).map_err(|e| e.to_string()))),
         ..Default::default()
     };
+    if scripted_ai {
+        services.ai = Some(scripted_ai_service());
+    }
     let open = arg(&args, "--open");
     let safe_gpu = args.iter().any(|a| a == "--safe-gpu");
     // `--background-jobs`: long commands run as background jobs, as in the desktop app (#210).
@@ -195,4 +201,26 @@ fn main() {
     let img = harness.render().expect("render");
     img.save(&out).expect("save png");
     println!("wrote {out} ({}×{})", img.width(), img.height());
+}
+
+/// Window › AI's service for `--scripted-ai`: a [`photocraft_ai::Scripted`] planner, so the panel
+/// renders a real brief and preview with no socket, no key and no model.
+fn scripted_ai_service() -> photocraft_ui_egui::ai_ui::Service {
+    use std::sync::{Arc, Mutex};
+    let settings = photocraft_ai::Settings { base_url: "https://scripted.invalid/v1".into(), model: "scripted".into(), key: None };
+    let brief = serde_json::json!({
+        "title": "Autumn Print Fair",
+        "subtitle": "Twelve studios open late",
+        "body": "Prints, posters and new work, from twelve artists.",
+        "footer": "Sat 14 Nov · 6-9 pm · Mill Lane",
+        "format": "a4",
+        "template": "auto",
+        "palette": { "background": "#f4f1ea", "ink": "#17161a", "accent": "#e2402c" },
+        "style": ["editorial"]
+    });
+    photocraft_ui_egui::ai_ui::Service {
+        settings: Arc::new(Mutex::new(settings)),
+        make: Arc::new(move |_| Ok(Box::new(photocraft_ai::Scripted::new(brief.clone())) as Box<dyn photocraft_ai::Planner + Send>)),
+        save: Box::new(|_| Ok(())),
+    }
 }

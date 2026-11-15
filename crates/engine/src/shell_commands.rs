@@ -60,6 +60,8 @@ pub const SHELL_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("view.rotateView", "Rotate View", &[], None),
     ("view.resetView", "Reset View", &["View"], None),
     ("window.newWindowForDocument", "New Window", &["Window", "Arrange"], None),
+    // The AI panel: a prompt becomes an editable poster (see `ai_ui` and `docs/ai-poster.md`).
+    ("window.ai.createPoster", "Create Poster…", &["Window", "AI"], None),
     ("window.toggle.layers", "Layers", &["Window"], Some("F7")),
     ("window.toggle.history", "History", &["Window"], None),
     ("window.toggle.properties", "Properties", &["Window"], None),

@@ -21,6 +21,7 @@ const POLL: Duration = Duration::from_millis(100);
 pub fn services(bridge: Arc<Bridge>, files_dir: &Path) -> Services {
     let prefs = files_dir.join("prefs.json");
     let prefs_w = prefs.clone();
+    let b_ai = bridge.clone();
     let (b_dialog, b_save, b_write, b_quit) = (bridge.clone(), bridge.clone(), bridge.clone(), bridge);
     Services {
         import: Some(Box::new(|name: &str, bytes: &[u8], opts: &photocraft_io::ImportOptions| {
@@ -53,6 +54,8 @@ pub fn services(bridge: Arc<Bridge>, files_dir: &Path) -> Services {
         })),
         load_prefs: Some(Box::new(move || std::fs::read_to_string(&prefs).ok())),
         save_prefs: Some(Box::new(move |text: &str| photocraft_format::atomic_write(&prefs_w, text.as_bytes()).map_err(|e| e.to_string()))),
+        // Window › AI › Create Poster: the Activity does the POST (see `ai.rs` and `bridge.rs`).
+        ai: Some(crate::ai::service(b_ai, files_dir)),
         append_text: Some(Box::new(|path: &str, text: &str| {
             use std::io::Write as _;
             let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path).map_err(|e| e.to_string())?;

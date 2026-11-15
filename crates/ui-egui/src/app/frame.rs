@@ -1,9 +1,9 @@
 use super::{
-    PhotocraftApp, analysis_ui, brush_panel, brush_picker, camera_raw_ui, canvas, dds_options_ui, dialogs, discard_ui, distort_ui, field_wheel, gpu_canvas,
-    gpu_status, gradient_ui, i18n, jobs_ui, jpeg_options_ui, kys_import, last_brush, layers_panel_ui, monitor_status, native_menu, notices, paint_mouse,
-    palette, panels, prefs_ui, preset_panels, rasterize_prompt, screen_picker, shape_stroke_ui, shortcuts, smart_svg_ui, targa_options_ui, text_field_menu,
-    theme, tiff_options_ui, timeline_ui, titlebar, tool_cursor, tool_memory, transform_tool, type_panels_ui, type_tool, updates_ui, vector_ui, view_cmds,
-    wide_angle_ui, work_area, workspace_ui,
+    PhotocraftApp, ai_ui, analysis_ui, brush_panel, brush_picker, camera_raw_ui, canvas, dds_options_ui, dialogs, discard_ui, distort_ui, field_wheel,
+    gpu_canvas, gpu_status, gradient_ui, i18n, jobs_ui, jpeg_options_ui, kys_import, last_brush, layers_panel_ui, monitor_status, native_menu, notices,
+    paint_mouse, palette, panels, prefs_ui, preset_panels, rasterize_prompt, screen_picker, shape_stroke_ui, shortcuts, smart_svg_ui, targa_options_ui,
+    text_field_menu, theme, tiff_options_ui, timeline_ui, titlebar, tool_cursor, tool_memory, transform_tool, type_panels_ui, type_tool, updates_ui,
+    vector_ui, view_cmds, wide_angle_ui, work_area, workspace_ui,
 };
 
 impl PhotocraftApp {
@@ -78,6 +78,7 @@ impl PhotocraftApp {
         crate::dock::persist_pending(self, ctx);
         prefs_ui::tick(self, ctx);
         updates_ui::tick(self, ctx);
+        ai_ui::tick(self, ctx);
         monitor_status::poll_frame(self, ctx, frame);
         // Control requests and persisted preferences can change the language in this frame.
         i18n::sync_context(ctx, &self.session.prefs().interface.language);
@@ -380,6 +381,7 @@ impl PhotocraftApp {
         canvas::extra_windows(self, &ctx);
         notices::show(self, &ctx);
         updates_ui::show(self, &ctx);
+        ai_ui::show(self, &ctx);
         gpu_status::show_fallback(self, &ctx);
         kys_import::show_offer(self, &ctx);
         if self.titlebar_modal_drag(chrome) {

@@ -52,6 +52,7 @@ macro_rules! cmd {
 pub mod actions_cmds;
 pub mod actions_edit_cmds;
 pub mod adjust_cmds;
+pub mod ai_cmds;
 mod adjust_params;
 pub mod align_cmds;
 pub mod analysis_cmds;
@@ -1452,6 +1453,7 @@ fn build() -> Vec<CommandSpec> {
     v.extend(crate::mask_view_cmds::specs());
     v.extend(crate::layer_mask_props_cmds::specs());
     v.extend(crate::actions_cmds::specs());
+    v.extend(crate::ai_cmds::specs());
     // The dispatch guard's unit test needs a command that panics on purpose (REL-3).
     #[cfg(test)]
     v.push(test_panic_command());

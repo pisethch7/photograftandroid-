@@ -634,6 +634,7 @@ struct PanelSet {
     panels: Option<crate::state::Panels>,
     mask_target: Option<bool>,
     updates_open: Option<bool>,
+    ai_open: Option<bool>,
     vector_mask_target: Option<bool>,
     filter_mask_target: Option<bool>,
     selection_mode: Option<u64>,
@@ -654,6 +655,7 @@ impl PanelSet {
             panels: merged_object(&app.ui.panels, panels_patch(app, p.get("panels"))?.as_ref(), "panels")?,
             mask_target: bool_field(p, "maskTarget")?,
             updates_open: bool_field(p, "updatesOpen")?,
+            ai_open: bool_field(p, "aiOpen")?,
             vector_mask_target: bool_field(p, "vectorMaskTarget")?,
             filter_mask_target: filter_mask_target_param(app, p)?,
             selection_mode: uint_field(p, "selectionMode")?,
@@ -705,6 +707,9 @@ impl PanelSet {
         }
         if let Some(open) = self.updates_open {
             app.ui.updates_open = open;
+        }
+        if let Some(open) = self.ai_open {
+            app.ui.ai_open = open;
         }
         if let Some(m) = self.vector_mask_target {
             app.end_filter_mask_view();

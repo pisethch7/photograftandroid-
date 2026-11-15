@@ -730,6 +730,12 @@ fn invoke_window_command(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str)
             app.ui.windows.push(crate::state::DocWindow { id: wid, document: doc, view, open: true, floating: false, focused: false, position: None });
             Ok(json!({"window": wid}))
         })()),
+        // Window › AI › Create Poster…: open the panel, not toggle it. It is an action that starts
+        // a flow, so a second click while it is open should keep it in front rather than hide it.
+        "window.ai.createPoster" => {
+            app.ui.ai_open = true;
+            Some(Ok(json!({"open": true})))
+        }
         "window.theme.toggle" => {
             crate::prefs_ui::cycle_appearance(app, ctx);
             Some(Ok(Value::Null))

@@ -22,6 +22,8 @@ photocraft-engine = { workspace = true }
 photocraft-io = { workspace = true }
 photocraft-plugins = { workspace = true }
 photocraft-algo = { workspace = true }
+# The AI poster panel's preview and provider settings; the engine owns the commands.
+photocraft-ai = { workspace = true }
 photocraft-text = { workspace = true }
 photocraft-vector = { workspace = true }
 # Only MAX_BRUSH_SIZE: `ui.set brushSize` validates against the Brush Settings range up front.

@@ -54,6 +54,10 @@ PhotoCraftActivity.java (extends GameActivity)       libphotocraft_android.so (t
   defaults (the emulator's SwiftShader: 16 KiB uniform buffers).
 - **The bridge** (`src/bridge.rs`) is plain files in `files/bridge`, so it needs no JNI calls
   from Rust and no `unsafe`; the protocol is documented in that module.
+- **Window › AI › Create Poster…** asks a model through the same bridge: Rust writes
+  `ai-request.json`, the Activity POSTs it with `HttpURLConnection` (Android's own trust store, so
+  no TLS to cross-compile) and writes `ai-answer.json`. The API key lives in the app's private
+  `ai.json`, never in a command parameter, the journal or `ui.ron`; nothing logs the headers.
 - **Settings backup:** updates keep everything in the app's storage. For a reinstall or a new
   tablet, Android's app backup (the Google account, and device-to-device transfer) keeps the
   preferences, presets (brushes, adjustments, tools), Shortcut Pad, Touch Input and layout
@@ -287,6 +291,10 @@ Not covered by the emulator: real pressure curves, tilt and the eraser end (adb 
 pressure 1.0 and no tilt; the mapping is unit-tested in `photocraft-tablet`), a hardware GPU
 driver, real-device performance, and holding a Shortcut Pad key while the pen draws (adb
 injects one touch at a time; the routing is unit-tested in `src/pad/router.rs`).
+
+Window › AI's model call was added after that run: the Rust half is unit-tested
+(`src/ai.rs`, `src/bridge.rs`), but the Java POST and a real prompt → poster on a device have
+not been exercised yet.
 
 ## Supported
 

@@ -34,6 +34,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -106,6 +108,7 @@ public class PhotoCraftActivity extends GameActivity {
                 checkSync();
                 checkQuit();
                 checkUpdateRequest();
+                checkAiRequest();
                 checkClipboard();
                 checkStatusBar();
             } catch (Exception e) {
@@ -837,6 +840,138 @@ public class PhotoCraftActivity extends GameActivity {
         File f = new File(bridge, "check-update");
         if (f.exists() && f.delete()) {
             updater.check(true);
+        }
+    }
+
+    // ---- AI (Window › AI › Create Poster) ---------------------------------------------------
+
+    /**
+     * Window › AI's model call: Rust writes {@code ai-request.json} (URL, headers, body), this
+     * reads it, deletes it and runs the POST on {@link #io}, then writes {@code ai-answer.json}
+     * with the status and body (see {@code src/ai.rs} and {@code src/bridge.rs}).
+     *
+     * <p>Android's own network stack does the request, so the platform trust store applies: no TLS
+     * to cross-compile, no certificate bundle to keep current. The headers can carry the API key,
+     * so nothing here logs them or the request.
+     */
+    private void checkAiRequest() {
+        File f = new File(bridge, "ai-request.json");
+        if (!f.isFile()) {
+            return;
+        }
+        final JSONObject request;
+        try {
+            request = new JSONObject(readText(f));
+        } catch (Exception e) {
+            Log.w(TAG, "ai: unreadable request: " + e.getMessage());
+            //noinspection ResultOfMethodCallIgnored
+            f.delete();
+            return;
+        }
+        //noinspection ResultOfMethodCallIgnored
+        f.delete();
+        io.execute(() -> runAiRequest(request));
+    }
+
+    /** One POST for {@link #checkAiRequest()}, on the io thread. */
+    private void runAiRequest(JSONObject request) {
+        long id = request.optLong("id", -1);
+        int status = 0;
+        String body = "";
+        String error = null;
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(request.getString("url")).openConnection();
+            c.setConnectTimeout(20_000);
+            // A reasoning model on a long prompt is slow; a dead socket must still end.
+            c.setReadTimeout(120_000);
+            c.setRequestMethod("POST");
+            c.setDoOutput(true);
+            JSONArray headers = request.optJSONArray("headers");
+            if (headers != null) {
+                for (int i = 0; i < headers.length(); i++) {
+                    JSONArray pair = headers.optJSONArray(i);
+                    if (pair != null && pair.length() == 2) {
+                        c.setRequestProperty(pair.getString(0), pair.getString(1));
+                    }
+                }
+            }
+            byte[] bytes = request.optString("body", "").getBytes(StandardCharsets.UTF_8);
+            c.setFixedLengthStreamingMode(bytes.length);
+            try (OutputStream out = c.getOutputStream()) {
+                out.write(bytes);
+            }
+            status = c.getResponseCode();
+            // A 4xx/5xx body is the server's own explanation ("Incorrect API key provided"), which
+            // is worth more to the panel than the status alone.
+            try (InputStream in = status >= 400 ? c.getErrorStream() : c.getInputStream()) {
+                body = in == null ? "" : readCapped(in);
+            }
+        } catch (Exception e) {
+            error = oneLine(e.getMessage() != null ? e.getMessage() : e.toString());
+        } finally {
+            if (c != null) {
+                c.disconnect();
+            }
+        }
+        JSONObject answer = new JSONObject();
+        try {
+            answer.put("id", id);
+            if (error != null) {
+                answer.put("error", error);
+            } else {
+                answer.put("status", status);
+                answer.put("body", body);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "ai: could not compose the answer: " + e.getMessage());
+            return;
+        }
+        writeAiAnswer(answer);
+    }
+
+    /** At most 1 MiB of a response: a brief is about a kilobyte. */
+    private static String readCapped(InputStream in) throws IOException {
+        final int cap = 1 << 20;
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        byte[] buf = new byte[1 << 16];
+        int total = 0;
+        int n;
+        while (total < cap && (n = in.read(buf)) > 0) {
+            int keep = Math.min(n, cap - total);
+            out.write(buf, 0, keep);
+            total += keep;
+        }
+        return out.toString("UTF-8");
+    }
+
+    /** A failure flattened to one bounded line, as the panel shows it ({@code ai::one_line}). */
+    private static String oneLine(String text) {
+        String flat = text.replaceAll("\\p{Cntrl}", " ").trim();
+        if (flat.codePointCount(0, flat.length()) <= 200) {
+            return flat;
+        }
+        int end = flat.offsetByCodePoints(0, 200);
+        return flat.substring(0, end) + "\u2026";
+    }
+
+    /** The answer, written under a temporary name and renamed: Rust never reads a half file. */
+    private void writeAiAnswer(JSONObject answer) {
+        File tmp = new File(bridge, "ai-answer.json.tmp");
+        File dest = new File(bridge, "ai-answer.json");
+        try {
+            try (OutputStream out = new FileOutputStream(tmp)) {
+                out.write(answer.toString().getBytes(StandardCharsets.UTF_8));
+            }
+            if (!tmp.renameTo(dest)) {
+                //noinspection ResultOfMethodCallIgnored
+                dest.delete();
+                if (!tmp.renameTo(dest)) {
+                    Log.w(TAG, "ai: could not write the answer");
+                }
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "ai: could not write the answer: " + e.getMessage());
         }
     }
 

@@ -764,6 +764,8 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         beep: Some(platform_beep),
         check_updates: Some(crate::updates::service()),
         last_update: Some(crate::updates::last_update),
+        // Window › AI › Create Poster: the model call and its settings file.
+        ai: Some(crate::ai::service()),
         clipboard_set_image: Some({
             let clip = clip.clone();
             guarded_clipboard_set(move |w: u32, h: u32, px: &[u8]| {

@@ -54,6 +54,8 @@ pub const TABLE: &[(&str, Class)] = &[
     ("algo", Class::Layer(2)),
     ("text", Class::Layer(2)),
     ("vector", Class::Layer(2)),
+    // AI poster planning: a brief becomes a validated, editable layer plan (no network, no UI).
+    ("ai", Class::Layer(2)),
     ("compose", Class::Layer(3)),
     ("gpu", Class::Layer(3)),
     ("format", Class::Layer(3)),

@@ -34,6 +34,8 @@ photocraft-format = { workspace = true }
 photocraft-text = { workspace = true }
 craft-ui = { workspace = true }
 photocraft-ui-egui = { workspace = true }
+# Window › AI's provider settings and OpenAI-compatible client; the Activity does the POST.
+photocraft-ai = { workspace = true }
 photocraft-tablet = { workspace = true }
 egui = { workspace = true }
 log = { workspace = true }

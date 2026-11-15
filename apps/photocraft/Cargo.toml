@@ -27,6 +27,8 @@ photocraft-io = { workspace = true }
 photocraft-format = { workspace = true }
 photocraft-automation = { workspace = true }
 photocraft-ui-egui = { workspace = true }
+# The AI poster panel's provider settings and OpenAI-compatible client (Window › AI).
+photocraft-ai = { workspace = true }
 # Pen tablet pressure/tilt on macOS and X11 (the workspace's one isolated unsafe helper crate).
 photocraft-tablet = { workspace = true }
 eframe = { workspace = true, features = ["wgpu", "accesskit", "wayland", "x11", "persistence", "clipboard"] }
@@ -43,6 +45,9 @@ thiserror = { workspace = true }
 tempfile = "=3.27.0"
 roxmltree = "0.21"
 craft-update = { workspace = true }
+# The AI panel's model call: a blocking POST with rustls and the platform's certificate store,
+# already in the graph through craft-update.
+ureq = "3"
 rfd = { workspace = true }
 arboard = { version = "3.7", features = ["wayland-data-control"] }
 open = "5"

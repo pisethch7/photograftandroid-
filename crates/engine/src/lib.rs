@@ -70,6 +70,7 @@ pub use cmd as commands;
 pub use cmd::actions_cmds;
 pub use cmd::actions_edit_cmds;
 pub use cmd::adjust_cmds;
+pub use cmd::ai_cmds;
 pub use cmd::align_cmds;
 pub use cmd::analysis_cmds;
 pub use cmd::artboard_cmds;
@@ -266,6 +267,9 @@ pub struct Session {
     pub prefs: prefs::PrefsStore,
     /// Release checks use an injected platform transport; no network I/O in the engine.
     pub updates: updates_cmds::Updates,
+    /// AI poster planning: the app injects the model call, the engine owns the result, so CLI, MCP
+    /// and the GUI see one answer without a network dependency (see `ai_cmds`).
+    pub ai: ai_cmds::Posters,
     /// Edit menu state: Fade source, custom shape library (see `edit_menu_cmds`).
     pub edit_state: edit_menu_cmds::EditState,
     /// The pattern library (Window › Patterns; see `pattern.*`).

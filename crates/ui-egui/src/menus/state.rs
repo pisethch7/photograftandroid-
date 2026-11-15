@@ -6,6 +6,11 @@ pub fn is_enabled(app: &PhotocraftApp, id: &str) -> bool {
     if id == "layer.selectUnderCursor" {
         return app.session.active().is_some() && app.drag.is_none() && app.brush_resize.is_none();
     }
+    // Window › AI › Create Poster needs a model call: the web build and a session without one
+    // still have `ai.poster.plan` and `ai.poster.build`, but the panel could only explain itself.
+    if id == "window.ai.createPoster" {
+        return app.session.ai.plan.is_some();
+    }
     if crate::tool_shortcuts::tool(id).is_some() {
         return true;
     }

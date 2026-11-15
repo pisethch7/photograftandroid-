@@ -496,6 +496,10 @@ pub struct Services {
     pub alert: Option<fn()>,
     /// Starts a background check for published releases (desktop, outside Flatpak).
     pub check_updates: Option<photocraft_engine::updates_cmds::CheckFn>,
+    /// Window › AI › Create Poster's model call and provider settings (desktop and Android). `None`
+    /// on the web build and in tests, where `ai.poster.plan` and `ai.poster.build` still work from
+    /// a brief but nothing can ask a model.
+    pub ai: Option<crate::ai_ui::Service>,
     /// What the last self-update came to, read once at the first frame: `Ok` with the version it
     /// installed, `Err` with the reason it could not be installed (desktop).
     pub last_update: Option<LastUpdateFn>,

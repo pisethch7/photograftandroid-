@@ -5352,6 +5352,7 @@ dependencies = [
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
  "open",
+ "photocraft-ai",
  "photocraft-automation",
  "photocraft-cms",
  "photocraft-codecs",
@@ -5375,6 +5376,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.21",
+ "ureq",
  "winit",
  "winresource",
  "winsafe",
@@ -5392,6 +5394,15 @@ dependencies = [
  "flate2",
  "proptest",
  "ruzstd",
+]
+
+[[package]]
+name = "photocraft-ai"
+version = "0.20.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -5419,6 +5430,7 @@ dependencies = [
  "egui",
  "log",
  "ndk",
+ "photocraft-ai",
  "photocraft-codecs",
  "photocraft-doc",
  "photocraft-engine",
@@ -5567,6 +5579,7 @@ dependencies = [
  "exr",
  "flate2",
  "photocraft-affinity",
+ "photocraft-ai",
  "photocraft-algo",
  "photocraft-cms",
  "photocraft-codecs",
@@ -5838,6 +5851,7 @@ dependencies = [
  "icu_casemap",
  "icu_locale_core",
  "log",
+ "photocraft-ai",
  "photocraft-algo",
  "photocraft-cms",
  "photocraft-codecs",
@@ -8455,6 +8469,7 @@ dependencies = [
  "rustls-platform-verifier",
  "ureq-proto",
  "utf8-zero",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -9018,6 +9033,15 @@ name = "webpki-root-certs"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b96554aa2acc8ccdb7e1c9a58a7a68dd5d13bccc69cd124cb09406db612a1c9b"
+dependencies = [
+ "rustls-pki-types",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7265c9301c16a8711c992c2d8da90ee77ef54b1ed51482d6dfeb00dc756b1297"
 dependencies = [
  "rustls-pki-types",
 ]
